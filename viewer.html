@@ -3,24 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Viewer - Job List PWA</title>
+    <title>Viewer - Job List</title>
     <link rel="manifest" href="manifest-viewer.json">
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        :root { --primary: #007bff; --success: #28a745; --dark: #333; }
+        :root { --primary: #007bff; --success: #28a745; --warning: #fd7e14; --dark: #333; }
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
         .app-container { max-width: 500px; margin: auto; }
         h2 { text-align: center; color: var(--dark); margin-bottom: 20px; }
         .job-card { background: white; padding: 20px; border-radius: 15px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; cursor: pointer; border-left: 6px solid #ffc107; }
+        .job-card.scheduled { border-left-color: var(--warning); background-color: #fffaf0; }
         .job-title { font-size: 17px; font-weight: 600; color: var(--dark); flex: 1; }
-        .pending-timer { font-size: 13px; font-weight: bold; color: #ff3d00; background: #fff5f2; padding: 4px 10px; border-radius: 6px; margin-left: 10px; min-width: 65px; text-align: center; border: 1px solid #ffccbc; }
+        .pending-timer { font-size: 13px; font-weight: bold; color: #ff3d00; background: #fff5f2; padding: 4px 10px; border-radius: 6px; margin-left: 10px; border: 1px solid #ffccbc; }
+        .sched-tag { font-size: 12px; font-weight: bold; color: var(--warning); margin-left: 10px; }
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
         .modal-content { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 400px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); animation: slideIn 0.3s; }
         @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         input, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 15px; box-sizing: border-box; outline: none; margin-bottom: 15px; }
         .btn { flex: 1; padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
         .btn-submit { background: var(--success); color: white; }
+        .btn-sched { background: var(--warning); color: white; }
     </style>
 </head>
 <body>
@@ -35,8 +38,9 @@
         <h3 id="modalJobTitle">Job Details</h3>
         <input type="text" id="workerName" placeholder="ඔබේ නම...">
         <textarea id="jobNote" placeholder="සටහන (Note)..."></textarea>
-        <div style="display:flex; gap:10px;">
-            <button class="btn" style="background:#eee;" onclick="closeModal()">Cancel</button>
+        <div style="display:flex; gap:10px; flex-wrap: wrap;">
+            <button class="btn" style="background:#eee; width:100%; margin-bottom:5px;" onclick="closeModal()">Cancel</button>
+            <button id="viewerSchedBtn" class="btn btn-sched" onclick="viewerSchedule()">Schedule</button>
             <button class="btn btn-submit" onclick="submitDone()">Done</button>
         </div>
     </div>
@@ -73,18 +77,18 @@
             const keys = Object.keys(data);
             if(keys.length > lastTotalJobs && lastTotalJobs !== 0) {
                 new Audio('https://assets.mixkit.co/active_storage/sfx/2357/2357-preview.mp3').play();
-                if (Notification.permission === "granted") {
-                    new Notification("New Job!", { body: "අලුත් වැඩක් ඇතුළත් කර ඇත!", icon: "https://cdn-icons-png.flaticon.com/512/1827/1827369.png" });
-                }
+                if (Notification.permission === "granted") { new Notification("New Job!", { body: "අලුත් වැඩක් ඇවිත්!" }); }
             }
             lastTotalJobs = keys.length;
             keys.forEach(key => {
                 const job = data[key];
-                if (job.status === 'pending') {
+                if (job.status === 'pending' || job.status === 'scheduled') {
+                    const isSched = job.status === 'scheduled';
                     const card = document.createElement('div');
-                    card.className = 'job-card';
-                    card.onclick = () => openModal(key, job.title);
-                    card.innerHTML = `<span class="job-title">${job.title}</span><span class="pending-timer" data-time="${job.timestamp}">-</span>`;
+                    card.className = `job-card ${isSched ? 'scheduled' : ''}`;
+                    card.onclick = () => openModal(key, job);
+                    let tag = isSched ? `<span class="sched-tag">🕒 ${job.scheduledFor}</span>` : `<span class="pending-timer" data-time="${job.timestamp}">-</span>`;
+                    card.innerHTML = `<span class="job-title">${job.title}</span> ${tag}`;
                     listUI.appendChild(card);
                 }
             });
@@ -97,15 +101,29 @@
         });
     }, 1000);
 
-    function openModal(key, title) { selectedJobKey = key; document.getElementById('modalJobTitle').innerText = title; document.getElementById('jobModal').style.display = 'flex'; }
+    function openModal(key, job) {
+        selectedJobKey = key;
+        document.getElementById('modalJobTitle').innerText = job.title;
+        // දැනටමත් Schedule කරලා නම් ආයේ Schedule බටන් එක පෙන්වන්න එපා
+        document.getElementById('viewerSchedBtn').style.display = (job.status === 'scheduled') ? 'none' : 'block';
+        document.getElementById('jobModal').style.display = 'flex';
+    }
+
+    function viewerSchedule() {
+        if(confirm("මෙම Job එක මාසයකට Schedule කරන්නද?")) {
+            const nextMonth = new Date();
+            nextMonth.setMonth(nextMonth.getMonth() + 1);
+            db.ref('jobs/' + selectedJobKey).update({ status: 'scheduled', scheduledFor: nextMonth.toLocaleDateString() }).then(() => closeModal());
+        }
+    }
+
     function closeModal() { document.getElementById('jobModal').style.display = 'none'; }
     function submitDone() {
         const name = document.getElementById('workerName').value.trim();
         const note = document.getElementById('jobNote').value.trim();
         if (!name) return alert("නම ඇතුළත් කරන්න!");
-        db.ref('jobs/' + selectedJobKey).update({ status: 'completed', completedBy: name, note: note, completedTime: new Date().toLocaleString() }).then(closeModal);
+        db.ref('jobs/' + selectedJobKey).update({ status: 'completed', completedBy: name, note: note, completedTime: new Date().toLocaleString(), scheduledFor: null }).then(closeModal);
     }
-    document.addEventListener('click', () => {}, {once: true});
 </script>
 </body>
 </html>
