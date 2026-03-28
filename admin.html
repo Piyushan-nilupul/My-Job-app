@@ -3,31 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Job Manager PWA</title>
+    <title>Admin - Job Manager</title>
     <link rel="manifest" href="manifest-admin.json">
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        :root { --primary: #007bff; --danger: #dc3545; --success: #28a745; --dark: #333; }
+        :root { --primary: #007bff; --danger: #dc3545; --success: #28a745; --warning: #fd7e14; --dark: #333; }
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; margin: 0; }
         .app-container { max-width: 500px; margin: auto; }
         .admin-header { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 25px; }
         input { width: 100%; padding: 12px; border: 2px solid #eee; border-radius: 12px; font-size: 16px; box-sizing: border-box; outline: none; margin-bottom: 10px; }
         .add-btn { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; }
-        .job-card { background: white; padding: 18px; border-radius: 15px; margin-bottom: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-left: 6px solid #ffc107; }
+        .job-card { background: white; padding: 18px; border-radius: 15px; margin-bottom: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-left: 6px solid #ffc107; transition: 0.3s; }
         .job-card.completed { border-left-color: var(--success); }
+        .job-card.scheduled { border-left-color: var(--warning); background-color: #fffaf0; }
         .job-title { font-size: 16px; font-weight: 600; color: var(--dark); flex: 1; }
-        .pending-timer { font-size: 13px; font-weight: bold; color: #ff3d00; background: #fff5f2; padding: 4px 8px; border-radius: 6px; margin-left: 10px; min-width: 60px; text-align: center; }
-        .done-text { font-size: 11px; color: var(--success); font-weight: bold; }
+        .pending-timer { font-size: 12px; font-weight: bold; color: #ff3d00; background: #fff5f2; padding: 4px 8px; border-radius: 6px; margin-left: 10px; }
+        .status-tag { font-size: 11px; font-weight: bold; text-transform: uppercase; margin-left: 10px; }
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; }
         .modal-content { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 400px; box-shadow: 0 5px 20px rgba(0,0,0,0.3); animation: slideUp 0.3s; }
         @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .info-row { margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
         .info-row b { display: block; color: var(--primary); font-size: 12px; margin-bottom: 2px; }
-        .actions { display: flex; gap: 10px; margin-top: 25px; }
-        .btn { flex: 1; padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .actions { display: flex; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
+        .btn { flex: 1; padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; min-width: 100px; }
         .btn-close { background: #eee; color: #333; }
-        .btn-delete { background: var(--danger); color: white; }
+        .btn-sched { background: var(--warning); color: white; }
+        .btn-delete { background: var(--danger); color: white; width: 100%; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -53,6 +55,7 @@
         </div>
         <div class="actions">
             <button class="btn btn-close" onclick="closeModal()">වසන්න</button>
+            <button id="schedBtnAdmin" class="btn btn-sched" onclick="scheduleJob()">Schedule (1M)</button>
             <button class="btn btn-delete" onclick="deleteJob()">Delete Job</button>
         </div>
     </div>
@@ -97,20 +100,20 @@
             Object.keys(data).reverse().forEach(key => {
                 const job = data[key];
                 const isDone = job.status === 'completed';
+                const isSched = job.status === 'scheduled';
                 if(isDone) completedCount++;
                 const card = document.createElement('div');
-                card.className = `job-card ${isDone ? 'completed' : ''}`;
+                card.className = `job-card ${isDone ? 'completed' : (isSched ? 'scheduled' : '')}`;
                 card.onclick = () => openModal(key, job);
-                let timerHtml = isDone ? '<span class="done-text">✅ COMPLETED</span>' : `<span class="pending-timer" data-time="${job.timestamp}">-</span>`;
-                card.innerHTML = `<span class="job-title">${job.title}</span> ${timerHtml}`;
+                let rightSide = isDone ? '<span class="status-tag" style="color:var(--success)">✅ DONE</span>' : 
+                                (isSched ? `<span class="status-tag" style="color:var(--warning)">🕒 ${job.scheduledFor}</span>` : `<span class="pending-timer" data-time="${job.timestamp}">-</span>`);
+                card.innerHTML = `<span class="job-title">${job.title}</span> ${rightSide}`;
                 listUI.appendChild(card);
             });
         }
         if(completedCount > lastCompletedCount && lastCompletedCount !== 0) {
             new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play();
-            if (Notification.permission === "granted") {
-                new Notification("Job Done!", { body: "වැඩක් අවසන් කර ඇත!", icon: "https://cdn-icons-png.flaticon.com/512/1827/1827369.png" });
-            }
+            if (Notification.permission === "granted") { new Notification("Job Done!", { body: "වැඩක් අවසන් කර ඇත!" }); }
         }
         lastCompletedCount = completedCount;
     });
@@ -125,6 +128,7 @@
         selectedJobKey = key;
         document.getElementById('modalTitle').innerText = job.title;
         document.getElementById('viewStatus').innerText = job.status.toUpperCase();
+        document.getElementById('schedBtnAdmin').style.display = (job.status === 'pending') ? 'block' : 'none';
         const details = document.getElementById('doneDetails');
         if(job.status === 'completed') {
             details.style.display = 'block';
@@ -135,9 +139,16 @@
         document.getElementById('detailsModal').style.display = 'flex';
     }
 
+    function scheduleJob() {
+        if(confirm("මාසයකට Schedule කරන්නද?")) {
+            const nextMonth = new Date();
+            nextMonth.setMonth(nextMonth.getMonth() + 1);
+            db.ref('jobs/' + selectedJobKey).update({ status: 'scheduled', scheduledFor: nextMonth.toLocaleDateString() }).then(() => closeModal());
+        }
+    }
+
     function closeModal() { document.getElementById('detailsModal').style.display = 'none'; selectedJobKey = null; }
-    function deleteJob() { if(confirm("මෙම Job එක මකන්නද?")) { db.ref('jobs/' + selectedJobKey).remove(); closeModal(); } }
-    document.addEventListener('click', () => {}, {once: true});
+    function deleteJob() { if(confirm("මකන්නද?")) { db.ref('jobs/' + selectedJobKey).remove(); closeModal(); } }
 </script>
 </body>
 </html>
