@@ -60,6 +60,9 @@
     let selectedJobKey = null;
     let lastTotalJobs = 0;
 
+    // Google Sheets URL
+    const SHEET_URL = "https://script.google.com/macros/s/AKfycbzxwEFzWe4GQsg__G3ViWp4gQpvp_dtWLsVePRoAhuorMbdhVk-RH1LuVxzjoLbhHqQ8w/exec";
+
     function timeSince(date) {
         let seconds = Math.floor((new Date() - date) / 1000);
         let interval = seconds / 3600;
@@ -104,7 +107,6 @@
     function openModal(key, job) {
         selectedJobKey = key;
         document.getElementById('modalJobTitle').innerText = job.title;
-        // දැනටමත් Schedule කරලා නම් ආයේ Schedule බටන් එක පෙන්වන්න එපා
         document.getElementById('viewerSchedBtn').style.display = (job.status === 'scheduled') ? 'none' : 'block';
         document.getElementById('jobModal').style.display = 'flex';
     }
@@ -118,11 +120,43 @@
     }
 
     function closeModal() { document.getElementById('jobModal').style.display = 'none'; }
+
     function submitDone() {
         const name = document.getElementById('workerName').value.trim();
         const note = document.getElementById('jobNote').value.trim();
+        const title = document.getElementById('modalJobTitle').innerText;
+        
         if (!name) return alert("නම ඇතුළත් කරන්න!");
-        db.ref('jobs/' + selectedJobKey).update({ status: 'completed', completedBy: name, note: note, completedTime: new Date().toLocaleString(), scheduledFor: null }).then(closeModal);
+
+        const completeTime = new Date().toLocaleString();
+
+        // 1. Google Sheet එකට දත්ත යැවීම
+        fetch(SHEET_URL, {
+            method: 'POST',
+            mode: 'no-cors', // Browser වල CORS දෝෂය මගහැරීමට
+            cache: 'no-cache',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title: title,
+                status: 'completed',
+                worker: name,
+                note: note,
+                time: completeTime
+            })
+        });
+
+        // 2. Firebase එක Update කිරීම (මුල් Code එක)
+        db.ref('jobs/' + selectedJobKey).update({ 
+            status: 'completed', 
+            completedBy: name, 
+            note: note, 
+            completedTime: completeTime, 
+            scheduledFor: null 
+        }).then(() => {
+            document.getElementById('workerName').value = "";
+            document.getElementById('jobNote').value = "";
+            closeModal();
+        });
     }
 </script>
 </body>
