@@ -37,8 +37,8 @@
 <div class="app-container">
     <div class="admin-header">
         <h2 style="margin-top:0; text-align:center;">Admin Dashboard 🚀</h2>
-        <input type="text" id="jobTitle" placeholder="අලුත් වැඩක් ඇතුළත් කරන්න...">
-        <button class="add-btn" onclick="addNewJob()">Job එක Submit කරන්න</button>
+        <input type="text" id="jobTitle" placeholder="New Job">
+        <button class="add-btn" onclick="addNewJob()"> Submit Job </button>
     </div>
     <div id="jobList"></div>
 </div>
@@ -49,12 +49,12 @@
         <hr style="border:0; border-top:1px solid #eee; margin-bottom:15px;">
         <div class="info-row"><b>තත්ත්වය:</b> <span id="viewStatus"></span></div>
         <div id="doneDetails" style="display:none;">
-            <div class="info-row"><b>අවසන් කළ පුද්ගලයා:</b> <span id="viewWorker"></span></div>
-            <div class="info-row"><b>සටහන:</b> <span id="viewNote"></span></div>
-            <div class="info-row"><b>දිනය සහ වේලාව:</b> <span id="viewTime"></span></div>
+            <div class="info-row"><b>Done By:</b> <span id="viewWorker"></span></div>
+            <div class="info-row"><b>Note:</b> <span id="viewNote"></span></div>
+            <div class="info-row"><b>Time and Date :</b> <span id="viewTime"></span></div>
         </div>
         <div class="actions">
-            <button class="btn btn-close" onclick="closeModal()">වසන්න</button>
+            <button class="btn btn-close" onclick="closeModal()">Back</button>
             <button id="schedBtnAdmin" class="btn btn-sched" onclick="scheduleJob()">Schedule (1M)</button>
             <button class="btn btn-delete" onclick="deleteJob()">Delete Job</button>
         </div>
