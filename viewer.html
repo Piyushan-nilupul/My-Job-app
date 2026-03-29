@@ -12,7 +12,7 @@
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
         .app-container { max-width: 500px; margin: auto; }
         h2 { text-align: center; color: var(--dark); margin-bottom: 20px; }
-        .job-card { background: white; padding: 20px; border-radius: 15px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; cursor: pointer; border-left: 6px solid #ffc107; }
+        .job-card { background: white; padding: 20px; border-radius: 15px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; cursor: pointer; border-left: 6px solid #ffc107; transition: 0.3s; }
         .job-card.scheduled { border-left-color: var(--warning); background-color: #fffaf0; }
         .job-title { font-size: 17px; font-weight: 600; color: var(--dark); flex: 1; }
         .pending-timer { font-size: 13px; font-weight: bold; color: #ff3d00; background: #fff5f2; padding: 4px 10px; border-radius: 6px; margin-left: 10px; border: 1px solid #ffccbc; }
@@ -57,11 +57,12 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+    
     let selectedJobKey = null;
     let lastTotalJobs = 0;
 
-    // Google Sheets URL
-    const SHEET_URL = "https://script.google.com/macros/s/AKfycbzxwEFzWe4GQsg__G3ViWp4gQpvp_dtWLsVePRoAhuorMbdhVk-RH1LuVxzjoLbhHqQ8w/exec";
+    // ඔබ ලබාදුන් නව Google Script URL එක
+    const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbzIh_XLoju-18tn2mUz8TBcs1snnfAISi8L77Q-nL7JDjXV75vdII2-jNNPFBGMWv5j/exec";
 
     function timeSince(date) {
         let seconds = Math.floor((new Date() - date) / 1000);
@@ -72,25 +73,33 @@
         return Math.floor(seconds) + "s";
     }
 
+    // Firebase Realtime Update (මෙහිදී auto reload සිදුවේ)
     db.ref('jobs').on('value', (snapshot) => {
         const data = snapshot.val();
         const listUI = document.getElementById('pendingList');
         listUI.innerHTML = "";
+        
         if (data) {
             const keys = Object.keys(data);
+            
+            // අලුත් Job එකක් ආවොත් පමණක් දැනුම් දීම
             if(keys.length > lastTotalJobs && lastTotalJobs !== 0) {
                 new Audio('https://assets.mixkit.co/active_storage/sfx/2357/2357-preview.mp3').play();
                 if (Notification.permission === "granted") { new Notification("New Job!", { body: "අලුත් වැඩක් ඇවිත්!" }); }
             }
             lastTotalJobs = keys.length;
+
             keys.forEach(key => {
                 const job = data[key];
+                // 'pending' හෝ 'scheduled' වැඩ පමණක් පෙන්වයි
                 if (job.status === 'pending' || job.status === 'scheduled') {
                     const isSched = job.status === 'scheduled';
                     const card = document.createElement('div');
                     card.className = `job-card ${isSched ? 'scheduled' : ''}`;
                     card.onclick = () => openModal(key, job);
+                    
                     let tag = isSched ? `<span class="sched-tag">🕒 ${job.scheduledFor}</span>` : `<span class="pending-timer" data-time="${job.timestamp}">-</span>`;
+                    
                     card.innerHTML = `<span class="job-title">${job.title}</span> ${tag}`;
                     listUI.appendChild(card);
                 }
@@ -98,6 +107,7 @@
         }
     });
 
+    // Timer එක සෑම තත්පරයකම අලුත් කිරීම
     setInterval(() => {
         document.querySelectorAll('.pending-timer').forEach(el => {
             el.innerText = timeSince(parseInt(el.getAttribute('data-time')));
@@ -115,26 +125,32 @@
         if(confirm("මෙම Job එක මාසයකට Schedule කරන්නද?")) {
             const nextMonth = new Date();
             nextMonth.setMonth(nextMonth.getMonth() + 1);
-            db.ref('jobs/' + selectedJobKey).update({ status: 'scheduled', scheduledFor: nextMonth.toLocaleDateString() }).then(() => closeModal());
+            db.ref('jobs/' + selectedJobKey).update({ 
+                status: 'scheduled', 
+                scheduledFor: nextMonth.toLocaleDateString() 
+            }).then(() => closeModal());
         }
     }
 
-    function closeModal() { document.getElementById('jobModal').style.display = 'none'; }
+    function closeModal() { 
+        document.getElementById('jobModal').style.display = 'none'; 
+        document.getElementById('workerName').value = "";
+        document.getElementById('jobNote').value = "";
+    }
 
     function submitDone() {
         const name = document.getElementById('workerName').value.trim();
         const note = document.getElementById('jobNote').value.trim();
         const title = document.getElementById('modalJobTitle').innerText;
-        
+
         if (!name) return alert("නම ඇතුළත් කරන්න!");
 
         const completeTime = new Date().toLocaleString();
 
         // 1. Google Sheet එකට දත්ත යැවීම
-        fetch(SHEET_URL, {
+        fetch(GOOGLE_SHEET_URL, {
             method: 'POST',
-            mode: 'no-cors', // Browser වල CORS දෝෂය මගහැරීමට
-            cache: 'no-cache',
+            mode: 'no-cors',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 title: title,
@@ -145,7 +161,7 @@
             })
         });
 
-        // 2. Firebase එක Update කිරීම (මුල් Code එක)
+        // 2. Firebase Update කිරීම
         db.ref('jobs/' + selectedJobKey).update({ 
             status: 'completed', 
             completedBy: name, 
@@ -153,10 +169,8 @@
             completedTime: completeTime, 
             scheduledFor: null 
         }).then(() => {
-            document.getElementById('workerName').value = "";
-            document.getElementById('jobNote').value = "";
             closeModal();
-        });
+        }).catch(err => alert("Error: " + err));
     }
 </script>
 </body>
