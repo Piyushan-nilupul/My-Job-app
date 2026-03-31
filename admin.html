@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Job Manager</title>
-    <link rel="manifest" href="manifest-admin.json">
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
@@ -33,21 +32,19 @@
     </style>
 </head>
 <body>
-
 <div class="app-container">
     <div class="admin-header">
         <h2 style="margin-top:0; text-align:center;">Admin Dashboard 🚀</h2>
-        <input type="text" id="jobTitle" placeholder="New Job">
+        <input type="text" id="jobTitle" placeholder="New Job Title">
         <button class="add-btn" onclick="addNewJob()"> Submit Job </button>
     </div>
     <div id="jobList"></div>
 </div>
-
 <div id="detailsModal" class="modal">
     <div class="modal-content">
         <h3 id="modalTitle">Job Details</h3>
         <hr style="border:0; border-top:1px solid #eee; margin-bottom:15px;">
-        <div class="info-row"><b>තත්ත්වය:</b> <span id="viewStatus"></span></div>
+        <div class="info-row"><b>තත්ත්වය (Status):</b> <span id="viewStatus"></span></div>
         <div id="doneDetails" style="display:none;">
             <div class="info-row"><b>Done By:</b> <span id="viewWorker"></span></div>
             <div class="info-row"><b>Note:</b> <span id="viewNote"></span></div>
@@ -60,20 +57,11 @@
         </div>
     </div>
 </div>
-
 <script>
-    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
-    if (Notification.permission !== "granted") { Notification.requestPermission(); }
-
-    const firebaseConfig = {
-        apiKey: "AIzaSyBVL5PMnADsBYkTtJJmZS9BkfX-BvTQskQ",
-        databaseURL: "https://my-project-ec961-default-rtdb.firebaseio.com/",
-        projectId: "my-project-ec961"
-    };
+    const firebaseConfig = { apiKey: "AIzaSyBVL5PMnADsBYkTtJJmZS9BkfX-BvTQskQ", databaseURL: "https://my-project-ec961-default-rtdb.firebaseio.com/", projectId: "my-project-ec961" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     let selectedJobKey = null;
-    let lastCompletedCount = 0;
 
     function timeSince(date) {
         let seconds = Math.floor((new Date() - date) / 1000);
@@ -95,33 +83,23 @@
         const data = snapshot.val();
         const listUI = document.getElementById('jobList');
         listUI.innerHTML = "";
-        let completedCount = 0;
         if (data) {
             Object.keys(data).reverse().forEach(key => {
                 const job = data[key];
                 const isDone = job.status === 'completed';
                 const isSched = job.status === 'scheduled';
-                if(isDone) completedCount++;
                 const card = document.createElement('div');
                 card.className = `job-card ${isDone ? 'completed' : (isSched ? 'scheduled' : '')}`;
                 card.onclick = () => openModal(key, job);
-                let rightSide = isDone ? '<span class="status-tag" style="color:var(--success)">✅ DONE</span>' : 
-                                (isSched ? `<span class="status-tag" style="color:var(--warning)">🕒 ${job.scheduledFor}</span>` : `<span class="pending-timer" data-time="${job.timestamp}">-</span>`);
+                let rightSide = isDone ? '<span class="status-tag" style="color:var(--success)">✅ DONE</span>' : (isSched ? `<span class="status-tag" style="color:var(--warning)">🕒 ${job.scheduledFor}</span>` : `<span class="pending-timer" data-time="${job.timestamp}">-</span>`);
                 card.innerHTML = `<span class="job-title">${job.title}</span> ${rightSide}`;
                 listUI.appendChild(card);
             });
         }
-        if(completedCount > lastCompletedCount && lastCompletedCount !== 0) {
-            new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3').play();
-            if (Notification.permission === "granted") { new Notification("Job Done!", { body: "වැඩක් අවසන් කර ඇත!" }); }
-        }
-        lastCompletedCount = completedCount;
     });
 
     setInterval(() => {
-        document.querySelectorAll('.pending-timer').forEach(el => {
-            el.innerText = timeSince(parseInt(el.getAttribute('data-time')));
-        });
+        document.querySelectorAll('.pending-timer').forEach(el => { el.innerText = timeSince(parseInt(el.getAttribute('data-time'))); });
     }, 1000);
 
     function openModal(key, job) {
@@ -146,8 +124,7 @@
             db.ref('jobs/' + selectedJobKey).update({ status: 'scheduled', scheduledFor: nextMonth.toLocaleDateString() }).then(() => closeModal());
         }
     }
-
-    function closeModal() { document.getElementById('detailsModal').style.display = 'none'; selectedJobKey = null; }
+    function closeModal() { document.getElementById('detailsModal').style.display = 'none'; }
     function deleteJob() { if(confirm("මකන්නද?")) { db.ref('jobs/' + selectedJobKey).remove(); closeModal(); } }
 </script>
 </body>
