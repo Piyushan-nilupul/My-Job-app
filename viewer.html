@@ -35,9 +35,15 @@
         <h3 id="modalJobTitle">Job Details</h3>
         <input type="text" id="workerName" placeholder="ඔබේ නම (Worker Name)...">
         <textarea id="jobNote" placeholder="සටහන (Note)..."></textarea>
+        
+        <div id="viewerSchedDateArea" style="margin-bottom:15px;">
+            <label style="font-size: 12px; color: #666;">Schedule කරන්නේ නම් දිනය තෝරන්න:</label>
+            <input type="date" id="viewerSchedDate">
+        </div>
+
         <div style="display:flex; gap:10px; flex-wrap: wrap;">
             <button class="btn" style="background:#eee; width:100%; margin-bottom:5px;" onclick="closeModal()">Cancel</button>
-            <button id="viewerSchedBtn" class="btn btn-sched" onclick="viewerSchedule()">Schedule</button>
+            <button id="viewerSchedBtn" class="btn btn-sched" onclick="submitSchedule()">Schedule</button>
             <button class="btn btn-submit" onclick="submitDone()">Done</button>
         </div>
     </div>
@@ -48,8 +54,7 @@
     const db = firebase.database();
     let selectedJobKey = null;
 
-    // ඔබ ලබාදුන් Google Script URL එක මෙතනට දමන්න
-    const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbxMt6NsO5aWfOESZzHo_s4AqUgimyQhHHqaR64TQTJayAKv_EaZCFYWS881F_elyjma/exec";
+    const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbzMt6NsO5aWfOESZzHo_s4AqUgimyQhHHqaR64TQTJayAKv_EaZCFYWS881F_elyjma/exec";
 
     function timeSince(date) {
         let seconds = Math.floor((new Date() - date) / 1000);
@@ -87,15 +92,23 @@
         selectedJobKey = key;
         document.getElementById('modalJobTitle').innerText = job.title;
         document.getElementById('viewerSchedBtn').style.display = (job.status === 'scheduled') ? 'none' : 'block';
+        document.getElementById('viewerSchedDateArea').style.display = (job.status === 'scheduled') ? 'none' : 'block';
         document.getElementById('jobModal').style.display = 'flex';
     }
 
-    function viewerSchedule() {
-        if(confirm("මාසයකට Schedule කරන්නද?")) {
-            const nextMonth = new Date();
-            nextMonth.setMonth(nextMonth.getMonth() + 1);
-            db.ref('jobs/' + selectedJobKey).update({ status: 'scheduled', scheduledFor: nextMonth.toLocaleDateString() }).then(() => closeModal());
-        }
+    function submitSchedule() {
+        const name = document.getElementById('workerName').value.trim();
+        const note = document.getElementById('jobNote').value.trim();
+        const date = document.getElementById('viewerSchedDate').value;
+
+        if (!name || !date) return alert("නම සහ දිනය ඇතුළත් කරන්න!");
+
+        db.ref('jobs/' + selectedJobKey).update({ 
+            status: 'scheduled', 
+            scheduledFor: date,
+            scheduledBy: name,
+            note: note
+        }).then(() => closeModal());
     }
 
     function closeModal() { document.getElementById('jobModal').style.display = 'none'; }
@@ -108,14 +121,12 @@
 
         const completeTime = new Date().toLocaleString();
 
-        // Google Sheet එකට දත්ත යැවීම
         fetch(GOOGLE_SHEET_URL, {
             method: 'POST',
             mode: 'no-cors',
             body: JSON.stringify({ title: title, status: 'completed', worker: name, note: note, time: completeTime })
         });
 
-        // Firebase Update කිරීම
         db.ref('jobs/' + selectedJobKey).update({ 
             status: 'completed', 
             completedBy: name, 
