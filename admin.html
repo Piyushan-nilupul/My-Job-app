@@ -97,7 +97,7 @@
                 const card = document.createElement('div');
                 card.className = `job-card ${isDone ? 'completed' : (isSched ? 'scheduled' : '')}`;
                 card.onclick = () => openModal(key, job);
-                let rightSide = isDone ? '<span class="status-tag" style="color:var(--success)"> ✅ DONE</span>' : (isSched ? `<span class="status-tag" style="color:var(--warning)">🕒 ${job.scheduledFor}</span>` : `<span class="pending-timer" data-time="${job.timestamp}">-</span>`);
+                let rightSide = isDone ? '<span class="status-tag" style="color:var(--success)"> ✅ Complete </span>' : (isSched ? `<span class="status-tag" style="color:var(--warning)">🕒 ${job.scheduledFor}</span>` : `<span class="pending-timer" data-time="${job.timestamp}">-</span>`);
                 card.innerHTML = `<span class="job-title">${job.title}</span> ${rightSide}`;
                 listUI.appendChild(card);
             });
