@@ -10,7 +10,7 @@
         :root { --primary: #007bff; --success: #28a745; --warning: #fd7e14; --dark: #333; }
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
         .app-container { max-width: 500px; margin: auto; }
-        h2 { text-align: center; color: var(--dark); margin-bottom: 20px; }
+        h1 { text-align: center; color: var(--dark); margin-bottom: 20px; }
         .job-card { background: white; padding: 20px; border-radius: 15px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; cursor: pointer; border-left: 6px solid #ffc107; }
         .job-card.scheduled { border-left-color: var(--warning); background-color: #fffaf0; }
         .job-title { font-size: 17px; font-weight: 600; color: var(--dark); flex: 1; }
@@ -27,7 +27,7 @@
 </head>
 <body>
 <div class="app-container">
-    <h2>Pending Job</h2>
+    <h1>Pending Job</h1>
     <div id="pendingList"></div>
 </div>
 <div id="jobModal" class="modal">
