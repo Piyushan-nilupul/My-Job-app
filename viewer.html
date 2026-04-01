@@ -37,7 +37,7 @@
         <textarea id="jobNote" placeholder="සටහන (Note)..."></textarea>
         
         <div id="viewerSchedDateArea" style="margin-bottom:15px;">
-            <label style="font-size: 12px; color: #666;">Schedule කරන්නේ නම් දිනය තෝරන්න:</label>
+            <label style="font-size: 12px; color: #666; display: block; margin-bottom: 5px;">Schedule කරන්නේ නම් දිනය තෝරන්න:</label>
             <input type="date" id="viewerSchedDate">
         </div>
 
@@ -54,6 +54,7 @@
     const db = firebase.database();
     let selectedJobKey = null;
 
+    // ඔබ ලබාදුන් නිවැරදි Google Script URL එක
     const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbxMt6NsO5aWfOESZzHo_s4AqUgimyQhHHqaR64TQTJayAKv_EaZCFYWS881F_elyjma/exec";
 
     function timeSince(date) {
@@ -121,12 +122,20 @@
 
         const completeTime = new Date().toLocaleString();
 
+        // Google Sheet එකට දත්ත යැවීම
         fetch(GOOGLE_SHEET_URL, {
             method: 'POST',
             mode: 'no-cors',
-            body: JSON.stringify({ title: title, status: 'completed', worker: name, note: note, time: completeTime })
+            body: JSON.stringify({ 
+                title: title, 
+                status: 'completed', 
+                worker: name, 
+                note: note, 
+                time: completeTime 
+            })
         });
 
+        // Firebase Update කිරීම
         db.ref('jobs/' + selectedJobKey).update({ 
             status: 'completed', 
             completedBy: name, 
