@@ -45,14 +45,20 @@
         <h3 id="modalTitle">Job Details</h3>
         <hr style="border:0; border-top:1px solid #eee; margin-bottom:15px;">
         <div class="info-row"><b>තත්ත්වය (Status):</b> <span id="viewStatus"></span></div>
-        <div id="doneDetails" style="display:none;">
-            <div class="info-row"><b>Done By:</b> <span id="viewWorker"></span></div>
+        
+        <div id="extraDetails" style="display:none;">
+            <div class="info-row" id="rowUser"><b>By:</b> <span id="viewWorker"></span></div>
             <div class="info-row"><b>Note:</b> <span id="viewNote"></span></div>
-            <div class="info-row"><b>Time and Date :</b> <span id="viewTime"></span></div>
+            <div class="info-row" id="rowTime"><b>Date/Time:</b> <span id="viewTime"></span></div>
         </div>
+
+        <div id="schedInputArea" style="display:none;">
+            <input type="date" id="adminSchedDate">
+        </div>
+
         <div class="actions">
             <button class="btn btn-close" onclick="closeModal()">Back</button>
-            <button id="schedBtnAdmin" class="btn btn-sched" onclick="scheduleJob()">Schedule (1M)</button>
+            <button id="schedBtnAdmin" class="btn btn-sched" onclick="confirmSchedule()">Set Schedule</button>
             <button class="btn btn-delete" onclick="deleteJob()">Delete Job</button>
         </div>
     </div>
@@ -106,24 +112,43 @@
         selectedJobKey = key;
         document.getElementById('modalTitle').innerText = job.title;
         document.getElementById('viewStatus').innerText = job.status.toUpperCase();
-        document.getElementById('schedBtnAdmin').style.display = (job.status === 'pending') ? 'block' : 'none';
-        const details = document.getElementById('doneDetails');
+        
+        const extra = document.getElementById('extraDetails');
+        const sInput = document.getElementById('schedInputArea');
+        const sBtn = document.getElementById('schedBtnAdmin');
+
         if(job.status === 'completed') {
-            details.style.display = 'block';
+            extra.style.display = 'block';
+            sInput.style.display = 'none';
+            sBtn.style.display = 'none';
             document.getElementById('viewWorker').innerText = job.completedBy || 'N/A';
             document.getElementById('viewNote').innerText = job.note || 'N/A';
             document.getElementById('viewTime').innerText = job.completedTime || 'N/A';
-        } else { details.style.display = 'none'; }
+        } else if(job.status === 'scheduled') {
+            extra.style.display = 'block';
+            sInput.style.display = 'none';
+            sBtn.style.display = 'none';
+            document.getElementById('viewWorker').innerText = job.scheduledBy || 'Admin';
+            document.getElementById('viewNote').innerText = job.note || 'No note';
+            document.getElementById('viewTime').innerText = "Scheduled For: " + job.scheduledFor;
+        } else {
+            extra.style.display = 'none';
+            sInput.style.display = 'block';
+            sBtn.style.display = 'block';
+        }
         document.getElementById('detailsModal').style.display = 'flex';
     }
 
-    function scheduleJob() {
-        if(confirm("මාසයකට Schedule කරන්නද?")) {
-            const nextMonth = new Date();
-            nextMonth.setMonth(nextMonth.getMonth() + 1);
-            db.ref('jobs/' + selectedJobKey).update({ status: 'scheduled', scheduledFor: nextMonth.toLocaleDateString() }).then(() => closeModal());
-        }
+    function confirmSchedule() {
+        const date = document.getElementById('adminSchedDate').value;
+        if(!date) return alert("කරුණාකර දිනයක් තෝරන්න!");
+        db.ref('jobs/' + selectedJobKey).update({ 
+            status: 'scheduled', 
+            scheduledFor: date,
+            scheduledBy: 'Admin'
+        }).then(() => closeModal());
     }
+
     function closeModal() { document.getElementById('detailsModal').style.display = 'none'; }
     function deleteJob() { if(confirm("මකන්නද?")) { db.ref('jobs/' + selectedJobKey).remove(); closeModal(); } }
 </script>
