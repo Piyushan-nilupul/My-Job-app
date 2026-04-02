@@ -11,7 +11,28 @@
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; margin: 0; }
         .app-container { max-width: 500px; margin: auto; }
         .admin-header { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 25px; }
-        input { width: 100%; padding: 12px; border: 2px solid #eee; border-radius: 12px; font-size: 16px; box-sizing: border-box; outline: none; margin-bottom: 10px; }
+        
+        /* Input සහ Textarea සඳහා පොදු ස්ටයිල් */
+        input, textarea { 
+            width: 100%; 
+            padding: 12px; 
+            border: 2px solid #eee; 
+            border-radius: 12px; 
+            font-size: 16px; 
+            box-sizing: border-box; 
+            outline: none; 
+            margin-bottom: 10px; 
+            display: block;
+        }
+
+        /* Textarea එක ස්වයංක්‍රීයව දික්වීමට අවශ්‍ය විශේෂ ස්ටයිල් */
+        textarea {
+            resize: none;
+            overflow: hidden;
+            min-height: 48px;
+            font-family: inherit;
+        }
+
         .add-btn { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; }
         .job-card { background: white; padding: 18px; border-radius: 15px; margin-bottom: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-left: 6px solid #ffc107; transition: 0.3s; }
         .job-card.completed { border-left-color: var(--success); }
@@ -35,11 +56,12 @@
 <div class="app-container">
     <div class="admin-header">
         <h2 style="margin-top:0; text-align:center;">Admin Dashboard </h2>
-        <input type="text" id="jobTitle" placeholder="New Job Title">
+        <textarea id="jobTitle" placeholder="New Job Title" rows="1" oninput="autoExpand(this)"></textarea>
         <button class="add-btn" onclick="addNewJob()"> Submit </button>
     </div>
     <div id="jobList"></div>
 </div>
+
 <div id="detailsModal" class="modal">
     <div class="modal-content">
         <h3 id="modalTitle">Job Details</h3>
@@ -63,11 +85,19 @@
         </div>
     </div>
 </div>
+
 <script>
     const firebaseConfig = { apiKey: "AIzaSyBVL5PMnADsBYkTtJJmZS9BkfX-BvTQskQ", databaseURL: "https://my-project-ec961-default-rtdb.firebaseio.com/", projectId: "my-project-ec961" };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
     let selectedJobKey = null;
+
+    // Textarea එක අකුරු ලියන විට ස්වයංක්‍රීයව පහළට දික්වන function එක
+    function autoExpand(field) {
+        field.style.height = 'inherit';
+        const height = field.scrollHeight;
+        field.style.height = height + 'px';
+    }
 
     function timeSince(date) {
         let seconds = Math.floor((new Date() - date) / 1000);
@@ -79,10 +109,14 @@
     }
 
     function addNewJob() {
-        const title = document.getElementById('jobTitle').value.trim();
+        const titleField = document.getElementById('jobTitle');
+        const title = titleField.value.trim();
         if(!title) return;
         db.ref('jobs').push({ title: title, status: 'pending', timestamp: Date.now() });
-        document.getElementById('jobTitle').value = '';
+        
+        // අගය Clear කර නැවත මුල් ප්‍රමාණයට පත් කිරීම
+        titleField.value = '';
+        titleField.style.height = 'inherit';
     }
 
     db.ref('jobs').on('value', (snapshot) => {
