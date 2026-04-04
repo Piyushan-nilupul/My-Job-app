@@ -11,11 +11,34 @@
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 20px; }
         .app-container { max-width: 500px; margin: auto; }
         h1 { text-align: center; color: var(--dark); margin-bottom: 20px; }
-        .job-card { background: white; padding: 20px; border-radius: 15px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; cursor: pointer; border-left: 6px solid #ffc107; }
+        
+        /* දිගු වාක්‍ය පාලනය කිරීම සඳහා CSS වෙනස් කරන ලදී */
+        .job-card { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 15px; 
+            margin-bottom: 12px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            cursor: pointer; 
+            border-left: 6px solid #ffc107; 
+            word-wrap: break-word; /* වාක්‍ය කැඩීමට */
+            overflow-wrap: break-word;
+            gap: 10px;
+        }
         .job-card.scheduled { border-left-color: var(--warning); background-color: #fffaf0; }
-        .job-title { font-size: 17px; font-weight: 600; color: var(--dark); flex: 1; }
-        .pending-timer { font-size: 13px; font-weight: bold; color: #ff3d00; background: #fff5f2; padding: 4px 10px; border-radius: 6px; margin-left: 10px; border: 1px solid #ffccbc; }
-        .sched-tag { font-size: 12px; font-weight: bold; color: var(--warning); margin-left: 10px; }
+        .job-title { 
+            font-size: 17px; 
+            font-weight: 600; 
+            color: var(--dark); 
+            flex: 1;
+            white-space: normal; /* පේළි කැඩීමට ඉඩ දෙයි */
+        }
+        
+        .pending-timer { font-size: 13px; font-weight: bold; color: #ff3d00; background: #fff5f2; padding: 4px 10px; border-radius: 6px; margin-left: 10px; border: 1px solid #ffccbc; white-space: nowrap; }
+        .sched-tag { font-size: 12px; font-weight: bold; color: var(--warning); margin-left: 10px; white-space: nowrap; }
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
         .modal-content { background: white; padding: 25px; border-radius: 20px; width: 90%; max-width: 450px; max-height: 90vh; overflow-y: auto; box-shadow: 0 5px 20px rgba(0,0,0,0.2); animation: slideIn 0.3s; }
         @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
@@ -157,7 +180,6 @@
 
         const completeTime = new Date().toLocaleString();
         
-        // Telegram Message Template
         const telegramMsg = `✅ *Job Completed!*
 
 📌 *Job:* ${title}
