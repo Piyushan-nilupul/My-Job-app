@@ -35,14 +35,13 @@
     <div class="modal-content">
         <h3 id="modalJobTitle">Job Details</h3>
         
-        <input type="text" id="workerName" placeholder="Technician Name">
         <input type="text" id="location" placeholder="Location">
         <input type="text" id="itemCode" placeholder="Item Code">
         <input type="text" id="brand" placeholder="Brand">
         <input type="text" id="model" placeholder="Model">
         <input type="text" id="serialNumber" placeholder="Serial Number">
         <textarea id="conditionDesc" placeholder="Description of Condition"></textarea>
-        <textarea id="jobNote" placeholder="Remark"></textarea>
+        <input type="text" id="workerName" placeholder="Technician Name">
         
         <div id="viewerSchedDateArea" style="margin-bottom:15px;">
             <label style="font-size: 12px; color: #666; display: block; margin-bottom: 5px;">Schedule:</label>
@@ -107,9 +106,7 @@
         selectedJobKey = key;
         document.getElementById('modalJobTitle').innerText = job.title;
         document.getElementById('workerName').value = job.scheduledBy || "";
-        document.getElementById('jobNote').value = job.note || "";
         
-        // Clear new fields
         document.getElementById('location').value = job.location || "";
         document.getElementById('itemCode').value = job.itemCode || "";
         document.getElementById('brand').value = job.brand || "";
@@ -127,13 +124,12 @@
     function submitSchedule() {
         const name = document.getElementById('workerName').value.trim();
         const date = document.getElementById('viewerSchedDate').value;
-        if (!name || !date) return alert("Name and Date are required!");
+        if (!name || !date) return alert("Technician Name and Date are required!");
 
         db.ref('jobs/' + selectedJobKey).update({ 
             status: 'scheduled', 
             scheduledFor: date,
             scheduledBy: name,
-            note: document.getElementById('jobNote').value.trim(),
             location: document.getElementById('location').value.trim(),
             itemCode: document.getElementById('itemCode').value.trim(),
             brand: document.getElementById('brand').value.trim(),
@@ -151,7 +147,6 @@
         const model = document.getElementById('model').value.trim();
         const serialNumber = document.getElementById('serialNumber').value.trim();
         const conditionDesc = document.getElementById('conditionDesc').value.trim();
-        const note = document.getElementById('jobNote').value.trim();
         const title = document.getElementById('modalJobTitle').innerText;
         const btn = document.getElementById('doneBtn');
 
@@ -162,18 +157,17 @@
 
         const completeTime = new Date().toLocaleString();
         
-        // Telegram Message Template with New Fields
+        // Telegram Message Template
         const telegramMsg = `✅ *Job Completed!*
 
 📌 *Job:* ${title}
-👷 *Worker:* ${name}
 📍 *Location:* ${location}
 🆔 *Item Code:* ${itemCode}
 🏷️ *Brand:* ${brand}
 🚘 *Model:* ${model}
 🔢 *S/N:* ${serialNumber}
 🛠️ *Condition:* ${conditionDesc}
-🗒️ *Note:* ${note}
+👷 *Technician:* ${name}
 🕒 *Time:* ${completeTime}`;
 
         try {
@@ -191,7 +185,7 @@
                 method: 'POST',
                 mode: 'no-cors',
                 body: JSON.stringify({ 
-                    title, status: 'completed', worker: name, note, 
+                    title, status: 'completed', worker: name, 
                     location, itemCode, brand, model, serialNumber, 
                     condition: conditionDesc, time: completeTime 
                 })
@@ -201,7 +195,6 @@
                 status: 'completed', 
                 completedBy: name, 
                 location, itemCode, brand, model, serialNumber, conditionDesc,
-                note: note, 
                 completedTime: completeTime 
             });
 
