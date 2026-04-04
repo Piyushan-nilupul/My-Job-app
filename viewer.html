@@ -17,9 +17,9 @@
         .pending-timer { font-size: 13px; font-weight: bold; color: #ff3d00; background: #fff5f2; padding: 4px 10px; border-radius: 6px; margin-left: 10px; border: 1px solid #ffccbc; }
         .sched-tag { font-size: 12px; font-weight: bold; color: var(--warning); margin-left: 10px; }
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
-        .modal-content { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 400px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); animation: slideIn 0.3s; }
+        .modal-content { background: white; padding: 25px; border-radius: 20px; width: 90%; max-width: 450px; max-height: 90vh; overflow-y: auto; box-shadow: 0 5px 20px rgba(0,0,0,0.2); animation: slideIn 0.3s; }
         @keyframes slideIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        input, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 15px; box-sizing: border-box; outline: none; margin-bottom: 15px; }
+        input, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 15px; box-sizing: border-box; outline: none; margin-bottom: 10px; }
         .btn { flex: 1; padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
         .btn-submit { background: var(--success); color: white; }
         .btn-sched { background: var(--warning); color: white; }
@@ -34,7 +34,14 @@
 <div id="jobModal" class="modal">
     <div class="modal-content">
         <h3 id="modalJobTitle">Job Details</h3>
+        
         <input type="text" id="workerName" placeholder="Technician Name">
+        <input type="text" id="location" placeholder="Location">
+        <input type="text" id="itemCode" placeholder="Item Code">
+        <input type="text" id="brand" placeholder="Brand">
+        <input type="text" id="model" placeholder="Model">
+        <input type="text" id="serialNumber" placeholder="Serial Number">
+        <textarea id="conditionDesc" placeholder="Description of Condition"></textarea>
         <textarea id="jobNote" placeholder="Remark"></textarea>
         
         <div id="viewerSchedDateArea" style="margin-bottom:15px;">
@@ -60,7 +67,6 @@
     const db = firebase.database();
     let selectedJobKey = null;
 
-    // --- Configuration ---
     const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbz-T96L4G4WJGShM8nHrdMzZz2MW_W8LbqPabv3I8kJJ4kTPhGouldiqjHjXhqCCHpziw/exec";
     const BOT_TOKEN = "8554122527:AAGhpW0DbfaI7GsF8Y_m8qJVChmdovqBU6o";
     const CHAT_ID = "-1003828022699";
@@ -102,6 +108,15 @@
         document.getElementById('modalJobTitle').innerText = job.title;
         document.getElementById('workerName').value = job.scheduledBy || "";
         document.getElementById('jobNote').value = job.note || "";
+        
+        // Clear new fields
+        document.getElementById('location').value = job.location || "";
+        document.getElementById('itemCode').value = job.itemCode || "";
+        document.getElementById('brand').value = job.brand || "";
+        document.getElementById('model').value = job.model || "";
+        document.getElementById('serialNumber').value = job.serialNumber || "";
+        document.getElementById('conditionDesc').value = job.conditionDesc || "";
+
         document.getElementById('viewerSchedBtn').style.display = (job.status === 'scheduled') ? 'none' : 'block';
         document.getElementById('viewerSchedDateArea').style.display = (job.status === 'scheduled') ? 'none' : 'block';
         document.getElementById('jobModal').style.display = 'flex';
@@ -111,7 +126,6 @@
 
     function submitSchedule() {
         const name = document.getElementById('workerName').value.trim();
-        const note = document.getElementById('jobNote').value.trim();
         const date = document.getElementById('viewerSchedDate').value;
         if (!name || !date) return alert("Name and Date are required!");
 
@@ -119,12 +133,24 @@
             status: 'scheduled', 
             scheduledFor: date,
             scheduledBy: name,
-            note: note
+            note: document.getElementById('jobNote').value.trim(),
+            location: document.getElementById('location').value.trim(),
+            itemCode: document.getElementById('itemCode').value.trim(),
+            brand: document.getElementById('brand').value.trim(),
+            model: document.getElementById('model').value.trim(),
+            serialNumber: document.getElementById('serialNumber').value.trim(),
+            conditionDesc: document.getElementById('conditionDesc').value.trim()
         }).then(() => closeModal());
     }
 
     async function submitDone() {
         const name = document.getElementById('workerName').value.trim();
+        const location = document.getElementById('location').value.trim();
+        const itemCode = document.getElementById('itemCode').value.trim();
+        const brand = document.getElementById('brand').value.trim();
+        const model = document.getElementById('model').value.trim();
+        const serialNumber = document.getElementById('serialNumber').value.trim();
+        const conditionDesc = document.getElementById('conditionDesc').value.trim();
         const note = document.getElementById('jobNote').value.trim();
         const title = document.getElementById('modalJobTitle').innerText;
         const btn = document.getElementById('doneBtn');
@@ -136,11 +162,21 @@
 
         const completeTime = new Date().toLocaleString();
         
-        // Telegram Message Template
-        const telegramMsg = `✅ *Job Completed!*\n\n📌 *Job:* ${title}\n👷 *Worker:* ${name}\n🗒️ *Note:* ${note}\n🕒 *Time:* ${completeTime}`;
+        // Telegram Message Template with New Fields
+        const telegramMsg = `✅ *Job Completed!*
+
+📌 *Job:* ${title}
+👷 *Worker:* ${name}
+📍 *Location:* ${location}
+🆔 *Item Code:* ${itemCode}
+🏷️ *Brand:* ${brand}
+🚘 *Model:* ${model}
+🔢 *S/N:* ${serialNumber}
+🛠️ *Condition:* ${conditionDesc}
+🗒️ *Note:* ${note}
+🕒 *Time:* ${completeTime}`;
 
         try {
-            // 1. Telegram Message Send
             await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -151,17 +187,20 @@
                 })
             });
 
-            // 2. Google Sheet Update
             fetch(GOOGLE_SHEET_URL, {
                 method: 'POST',
                 mode: 'no-cors',
-                body: JSON.stringify({ title, status: 'completed', worker: name, note, time: completeTime })
+                body: JSON.stringify({ 
+                    title, status: 'completed', worker: name, note, 
+                    location, itemCode, brand, model, serialNumber, 
+                    condition: conditionDesc, time: completeTime 
+                })
             });
 
-            // 3. Firebase Update
             await db.ref('jobs/' + selectedJobKey).update({ 
                 status: 'completed', 
                 completedBy: name, 
+                location, itemCode, brand, model, serialNumber, conditionDesc,
                 note: note, 
                 completedTime: completeTime 
             });
