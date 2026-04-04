@@ -26,9 +26,8 @@
     </style>
 </head>
 <body>
-
 <div class="app-container">
-    <h1>Pending Jobs</h1>
+    <h1>Pending Job</h1>
     <div id="pendingList"></div>
 </div>
 
@@ -39,20 +38,19 @@
         <textarea id="jobNote" placeholder="Remark"></textarea>
         
         <div id="viewerSchedDateArea" style="margin-bottom:15px;">
-            <label style="font-size: 12px; color: #666; display: block; margin-bottom: 5px;">Schedule Date:</label>
+            <label style="font-size: 12px; color: #666; display: block; margin-bottom: 5px;">Schedule:</label>
             <input type="date" id="viewerSchedDate">
         </div>
 
         <div style="display:flex; gap:10px; flex-wrap: wrap;">
             <button class="btn" style="background:#eee; width:100%; margin-bottom:5px;" onclick="closeModal()">Cancel</button>
-            <button id="viewerSchedBtn" class="btn btn-sched" onclick="submitSchedule()">Schedule Job</button>
-            <button class="btn btn-submit" id="doneBtn" onclick="submitDone()">Complete Job</button>
+            <button id="viewerSchedBtn" class="btn btn-sched" onclick="submitSchedule()">Schedule</button>
+            <button class="btn btn-submit" id="doneBtn" onclick="submitDone()">Done</button>
         </div>
     </div>
 </div>
 
 <script>
-    // --- Configuration ---
     const firebaseConfig = { 
         apiKey: "AIzaSyBVL5PMnADsBYkTtJJmZS9BkfX-BvTQskQ", 
         databaseURL: "https://my-project-ec961-default-rtdb.firebaseio.com/", 
@@ -60,14 +58,13 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    
     let selectedJobKey = null;
 
+    // --- Configuration ---
     const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbz-T96L4G4WJGShM8nHrdMzZz2MW_W8LbqPabv3I8kJJ4kTPhGouldiqjHjXhqCCHpziw/exec";
     const BOT_TOKEN = "8554122527:AAGhpW0DbfaI7GsF8Y_m8qJVChmdovqBU6o";
     const CHAT_ID = "-1003828022699";
 
-    // --- Helper Functions ---
     function timeSince(date) {
         let seconds = Math.floor((new Date() - date) / 1000);
         let interval = seconds / 3600;
@@ -77,21 +74,6 @@
         return Math.floor(seconds) + "s";
     }
 
-    async function sendTelegramMessage(message) {
-        try {
-            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    chat_id: CHAT_ID,
-                    text: message,
-                    parse_mode: 'Markdown'
-                })
-            });
-        } catch (e) { console.error("Telegram Error:", e); }
-    }
-
-    // --- Database Listeners ---
     db.ref('jobs').on('value', (snapshot) => {
         const data = snapshot.val();
         const listUI = document.getElementById('pendingList');
@@ -103,11 +85,7 @@
                     const card = document.createElement('div');
                     card.className = `job-card ${job.status === 'scheduled' ? 'scheduled' : ''}`;
                     card.onclick = () => openModal(key, job);
-                    
-                    let tag = job.status === 'scheduled' 
-                        ? `<span class="sched-tag">🕒 ${job.scheduledFor}</span>` 
-                        : `<span class="pending-timer" data-time="${job.timestamp}">-</span>`;
-                    
+                    let tag = job.status === 'scheduled' ? `<span class="sched-tag">🕒 ${job.scheduledFor}</span>` : `<span class="pending-timer" data-time="${job.timestamp}">-</span>`;
                     card.innerHTML = `<span class="job-title">${job.title}</span> ${tag}`;
                     listUI.appendChild(card);
                 }
@@ -116,16 +94,13 @@
     });
 
     setInterval(() => {
-        document.querySelectorAll('.pending-timer').forEach(el => { 
-            el.innerText = timeSince(parseInt(el.getAttribute('data-time'))); 
-        });
+        document.querySelectorAll('.pending-timer').forEach(el => { el.innerText = timeSince(parseInt(el.getAttribute('data-time'))); });
     }, 1000);
 
-    // --- Modal Functions ---
     function openModal(key, job) {
         selectedJobKey = key;
         document.getElementById('modalJobTitle').innerText = job.title;
-        document.getElementById('workerName').value = job.scheduledBy || ""; 
+        document.getElementById('workerName').value = job.scheduledBy || "";
         document.getElementById('jobNote').value = job.note || "";
         document.getElementById('viewerSchedBtn').style.display = (job.status === 'scheduled') ? 'none' : 'block';
         document.getElementById('viewerSchedDateArea').style.display = (job.status === 'scheduled') ? 'none' : 'block';
@@ -134,27 +109,18 @@
 
     function closeModal() { document.getElementById('jobModal').style.display = 'none'; }
 
-    // --- Action Functions ---
-    async function submitSchedule() {
+    function submitSchedule() {
         const name = document.getElementById('workerName').value.trim();
         const note = document.getElementById('jobNote').value.trim();
         const date = document.getElementById('viewerSchedDate').value;
-        const title = document.getElementById('modalJobTitle').innerText;
+        if (!name || !date) return alert("Name and Date are required!");
 
-        if (!name || !date) return alert("Technician name and Date are required!");
-
-        const msg = `📅 **Job Scheduled**\n\n📌 **Job:** ${title}\n👷 **Worker:** ${name}\n🕒 **Date:** ${date}\n🗒️ **Note:** ${note}`;
-
-        await db.ref('jobs/' + selectedJobKey).update({ 
+        db.ref('jobs/' + selectedJobKey).update({ 
             status: 'scheduled', 
             scheduledFor: date,
             scheduledBy: name,
             note: note
-        });
-
-        await sendTelegramMessage(msg);
-        closeModal();
-        alert("Job Scheduled & Telegram notified!");
+        }).then(() => closeModal());
     }
 
     async function submitDone() {
@@ -166,38 +132,50 @@
         if (!name) return alert("Please enter Technician Name!");
 
         btn.disabled = true;
-        btn.innerText = "Processing...";
+        btn.innerText = "Sending...";
 
         const completeTime = new Date().toLocaleString();
-        const payload = { title, status: 'completed', worker: name, note, time: completeTime };
+        
+        // Telegram Message Template
+        const telegramMsg = `✅ *Job Completed!*\n\n📌 *Job:* ${title}\n👷 *Worker:* ${name}\n🗒️ *Note:* ${note}\n🕒 *Time:* ${completeTime}`;
 
         try {
-            // 1. Telegram Message
-            const telegramMsg = `✅ **Job Completed!**\n\n📌 **Job:** ${title}\n👷 **Worker:** ${name}\n🗒️ **Note:** ${note}\n🕒 **Time:** ${completeTime}`;
-            
-            // 2. Parallel Requests (Sheet, Telegram, Firebase)
-            await Promise.all([
-                fetch(GOOGLE_SHEET_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) }),
-                sendTelegramMessage(telegramMsg),
-                db.ref('jobs/' + selectedJobKey).update({ 
-                    status: 'completed', 
-                    completedBy: name, 
-                    note: note, 
-                    completedTime: completeTime 
+            // 1. Telegram Message Send
+            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: CHAT_ID,
+                    text: telegramMsg,
+                    parse_mode: 'Markdown'
                 })
-            ]);
+            });
+
+            // 2. Google Sheet Update
+            fetch(GOOGLE_SHEET_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify({ title, status: 'completed', worker: name, note, time: completeTime })
+            });
+
+            // 3. Firebase Update
+            await db.ref('jobs/' + selectedJobKey).update({ 
+                status: 'completed', 
+                completedBy: name, 
+                note: note, 
+                completedTime: completeTime 
+            });
 
             closeModal();
-            alert("Success! Sheet & Telegram updated.");
+            alert("Job Completed & Telegram Sent!");
         } catch (error) {
             console.error(error);
-            alert("Error updating job.");
+            alert("Error sending message to Telegram.");
         } finally {
             btn.disabled = false;
-            btn.innerText = "Complete Job";
+            btn.innerText = "Done";
         }
     }
 </script>
-
 </body>
 </html>
