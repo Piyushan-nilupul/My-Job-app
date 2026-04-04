@@ -12,7 +12,6 @@
         .app-container { max-width: 500px; margin: auto; }
         .admin-header { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 25px; }
         
-        /* Input සහ Textarea සඳහා පොදු ස්ටයිල් */
         input, textarea { 
             width: 100%; 
             padding: 12px; 
@@ -25,7 +24,6 @@
             display: block;
         }
 
-        /* Textarea එක ස්වයංක්‍රීයව දික්වීමට අවශ්‍ය විශේෂ ස්ටයිල් */
         textarea {
             resize: none;
             overflow: hidden;
@@ -34,16 +32,40 @@
         }
 
         .add-btn { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; }
-        .job-card { background: white; padding: 18px; border-radius: 15px; margin-bottom: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-left: 6px solid #ffc107; transition: 0.3s; }
+        
+        /* දිගු වාක්‍ය පාලනය කිරීම සඳහා CSS වෙනස් කරන ලදී */
+        .job-card { 
+            background: white; 
+            padding: 18px; 
+            border-radius: 15px; 
+            margin-bottom: 10px; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05); 
+            cursor: pointer; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-left: 6px solid #ffc107; 
+            transition: 0.3s; 
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            gap: 10px;
+        }
         .job-card.completed { border-left-color: var(--success); }
         .job-card.scheduled { border-left-color: var(--warning); background-color: #fffaf0; }
-        .job-title { font-size: 16px; font-weight: 600; color: var(--dark); flex: 1; }
-        .pending-timer { font-size: 12px; font-weight: bold; color: #ff3d00; background: #fff5f2; padding: 4px 8px; border-radius: 6px; margin-left: 10px; }
-        .status-tag { font-size: 11px; font-weight: bold; text-transform: uppercase; margin-left: 10px; }
+        .job-title { 
+            font-size: 16px; 
+            font-weight: 600; 
+            color: var(--dark); 
+            flex: 1;
+            white-space: normal; /* පේළි කැඩීමට ඉඩ දෙයි */
+        }
+
+        .pending-timer { font-size: 12px; font-weight: bold; color: #ff3d00; background: #fff5f2; padding: 4px 8px; border-radius: 6px; margin-left: 10px; white-space: nowrap; }
+        .status-tag { font-size: 11px; font-weight: bold; text-transform: uppercase; margin-left: 10px; white-space: nowrap; }
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; }
-        .modal-content { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 400px; box-shadow: 0 5px 20px rgba(0,0,0,0.3); animation: slideUp 0.3s; }
+        .modal-content { background: white; padding: 25px; border-radius: 20px; width: 85%; max-width: 400px; box-shadow: 0 5px 20px rgba(0,0,0,0.3); animation: slideUp 0.3s; max-height: 90vh; overflow-y: auto; }
         @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        .info-row { margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .info-row { margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; word-wrap: break-word; }
         .info-row b { display: block; color: var(--primary); font-size: 12px; margin-bottom: 2px; }
         .actions { display: flex; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
         .btn { flex: 1; padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; min-width: 100px; }
@@ -70,7 +92,7 @@
         
         <div id="extraDetails" style="display:none;">
             <div class="info-row" id="rowUser"><b>By:</b> <span id="viewWorker"></span></div>
-            <div class="info-row"><b>Note:</b> <span id="viewNote"></span></div>
+            <div class="info-row"><b>Description of Condition:</b> <span id="viewCondition"></span></div>
             <div class="info-row" id="rowTime"><b>Date/Time:</b> <span id="viewTime"></span></div>
         </div>
 
@@ -92,7 +114,6 @@
     const db = firebase.database();
     let selectedJobKey = null;
 
-    // Textarea එක අකුරු ලියන විට ස්වයංක්‍රීයව පහළට දික්වන function එක
     function autoExpand(field) {
         field.style.height = 'inherit';
         const height = field.scrollHeight;
@@ -113,8 +134,6 @@
         const title = titleField.value.trim();
         if(!title) return;
         db.ref('jobs').push({ title: title, status: 'pending', timestamp: Date.now() });
-        
-        // අගය Clear කර නැවත මුල් ප්‍රමාණයට පත් කිරීම
         titleField.value = '';
         titleField.style.height = 'inherit';
     }
@@ -156,14 +175,14 @@
             sInput.style.display = 'none';
             sBtn.style.display = 'none';
             document.getElementById('viewWorker').innerText = job.completedBy || 'N/A';
-            document.getElementById('viewNote').innerText = job.note || 'N/A';
+            document.getElementById('viewCondition').innerText = job.conditionDesc || 'N/A';
             document.getElementById('viewTime').innerText = job.completedTime || 'N/A';
         } else if(job.status === 'scheduled') {
             extra.style.display = 'block';
             sInput.style.display = 'none';
             sBtn.style.display = 'none';
             document.getElementById('viewWorker').innerText = job.scheduledBy || 'Admin';
-            document.getElementById('viewNote').innerText = job.note || 'No note';
+            document.getElementById('viewCondition').innerText = job.conditionDesc || 'No description';
             document.getElementById('viewTime').innerText = "Scheduled For: " + job.scheduledFor;
         } else {
             extra.style.display = 'none';
