@@ -1,13 +1,13 @@
 {
-  "name": "Job Manager App",
-  "short_name": "JobApp",
+  "name": "MQ Job App",
+  "short_name": "MQ Job",
   "start_url": "admin.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#007bff",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/1827/1827369.png",
+      "src":"https://i.ibb.co/1JG0Kn4X/photo.jpg",
       "sizes": "512x512",
       "type": "image/png"
     }
