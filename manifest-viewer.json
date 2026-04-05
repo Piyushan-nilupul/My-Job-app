@@ -1,13 +1,13 @@
 {
-  "name": "Job Viewer App",
-  "short_name": "Viewer",
+  "name": "Job App",
+  "short_name": "MQ Tech",
   "start_url": "viewer.html",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#28a745",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/1572/1572132.png",
+      "src":"https://i.ibb.co/1JG0Kn4X/photo.jpg",
       "sizes": "512x512",
       "type": "image/png"
     }
