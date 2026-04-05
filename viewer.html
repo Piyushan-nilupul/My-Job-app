@@ -182,15 +182,15 @@
         
         const telegramMsg = `✅ *Job Completed!*
 
-📌 *Job:* ${title}
-📍 *Location:* ${location}
-🆔 *Item Code:* ${itemCode}
-🏷️ *Brand:* ${brand}
-🚘 *Model:* ${model}
-🔢 *S/N:* ${serialNumber}
-🛠️ *Condition:* ${conditionDesc}
-👷 *Technician:* ${name}
-🕒 *Time:* ${completeTime}`;
+ *Job:* ${title}
+ *Location:* ${location}
+ *Item Code:* ${itemCode}
+ *Brand:* ${brand}
+ *Model:* ${model}
+ *S/N:* ${serialNumber}
+ *Condition:* ${conditionDesc}
+ *Technician:* ${name}
+ *Time:* ${completeTime}`;
 
         try {
             await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
